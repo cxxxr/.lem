@@ -2,7 +2,7 @@
 
 (in-package :lem-user)
 
-(load-theme "emacs-dark")
+;; (load-theme "emacs-light")
 
 (define-key *global-keymap* "M-@" 'mark-sexp)
 (define-key *global-keymap* "M-Escape" 'mark-sexp)
@@ -21,6 +21,7 @@
             (setf (variable-value 'tab-width) 2)))
 
 (pushnew (cons "\\.cpp$" 'lem-c-mode:c-mode) *auto-mode-alist* :test #'equal)
+(pushnew (cons "\\.cc$" 'lem-c-mode:c-mode) *auto-mode-alist* :test #'equal)
 (pushnew (cons "\\.hpp$" 'lem-c-mode:c-mode) *auto-mode-alist* :test #'equal)
 
 (lem-lisp-syntax:set-indentation ":and" 'lem-lisp-syntax.indent::default-indent)
@@ -50,25 +51,6 @@
     (split-window-horizontally (current-window) width)
     (setf (current-window) window)))
 
-(defun delete-forward-form ()
-  (let ((end (form-offset (copy-point (current-point) :temporary) 1)))
-    (if end
-        (with-point ((end end :right-inserting))
-          (let ((text (points-to-string (current-point) end)))
-            (delete-between-points (current-point) end)
-            text))
-        (scan-error))))
-
-(define-command trim-form-above () ()
-  (let ((text (delete-forward-form)))
-    (backward-up-list)
-    (kill-sexp)
-    (save-excursion
-      (insert-string (current-point) text))
-    (lem-lisp-mode:lisp-indent-sexp)))
-
-(define-key *global-keymap* "C-M-y" 'trim-form-above)
-
 (pushnew (cons "\\.clj$" 'lem-lisp-mode:lisp-mode) *auto-mode-alist* :test #'equal)
 (pushnew (cons "\\.cljs$" 'lem-lisp-mode:lisp-mode) *auto-mode-alist* :test #'equal)
 (pushnew (cons "\\.cljc$" 'lem-lisp-mode:lisp-mode) *auto-mode-alist* :test #'equal)
@@ -88,11 +70,6 @@
   (lem-lisp-mode:lisp-mode))
 
 (define-key lem-lisp-mode:*lisp-mode-keymap* "C-c C-f" 'lisp-toggle-feature-highlight)
-
-(define-command test () ()
-  (message "~S" (prompt-for-string "")))
-
-(define-key *global-keymap* "F12" 'test)
 
 (defun root-directory-p (directory)
   (uiop:pathname-equal (uiop:pathname-parent-directory-pathname directory)
@@ -123,7 +100,7 @@
                                       (< 0 (length string)))
                      :history-symbol 'prompt-for-search-string))
 
-(define-command project-find (s) ((list (prompt-for-search-string)))
+(define-command project-find (s) ((prompt-for-search-string))
   (alexandria:when-let (root (find-git-root (buffer-directory)))
     (lem.grep:grep (format nil "git grep -nH ~A" (escape-string s))
                    root)))
@@ -145,3 +122,31 @@
 
 ;; (lem:set-attribute 'lem::modeline
 ;;                    :background "#E0E0E0" :foreground "black")
+
+(define-command c-format () ()
+  (filter-buffer (format nil "clang-format ~A" (buffer-filename (current-buffer)))))
+
+(defmacro debug-print (string)
+  `(%debug-print (sb-c:source-location) ,string))
+
+(defun %debug-print (source-location message)
+  (format t "~A:~A:~A~&"
+          (sb-c:definition-source-location-toplevel-form-number source-location)
+          (sb-c:definition-source-location-form-number source-location)
+          message))
+
+(define-key *global-keymap* "F12" 'test001)
+(define-key *global-keymap* "F10" 'test002)
+
+(define-command test001 () ()
+  #+(or)
+  (display-popup-message "hello"
+                         :timeout 1
+                         :gravity (make-instance 'lem.popup-window::gravity-topright))
+  (prompt-for-string "test: "
+                     :gravity :topright))
+
+(define-command test002 () ()
+  (log:info ">>>"
+            (with-output-to-string (*standard-output*)
+              (describe (current-window)))))
