@@ -135,18 +135,11 @@
           (sb-c:definition-source-location-form-number source-location)
           message))
 
-(define-key *global-keymap* "F12" 'test001)
-(define-key *global-keymap* "F10" 'test002)
+;;;
+(define-command toggle-line-wrap () ()
+  (setf (variable-value 'line-wrap) (not (variable-value 'line-wrap))))
 
-(define-command test001 () ()
-  #+(or)
-  (display-popup-message "hello"
-                         :timeout 1
-                         :gravity (make-instance 'lem.popup-window::gravity-topright))
-  (prompt-for-string "test: "
-                     :gravity :topright))
+(define-command copy-current-file-path () ()
+  (lem::copy-to-clipboard (buffer-filename (current-buffer))))
 
-(define-command test002 () ()
-  (log:info ">>>"
-            (with-output-to-string (*standard-output*)
-              (describe (current-window)))))
+(define-key *global-keymap* "C-x Backspace" 'lem.go-back:go-back)
